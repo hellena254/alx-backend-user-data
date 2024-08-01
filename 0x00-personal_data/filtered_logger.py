@@ -3,9 +3,12 @@
 REGEX-ING of logs
 """
 
+import os
 import re
 import logging
 from typing import List
+import mysql.connector
+from mysql.connector import Error
 
 PII_FIELDS = ("name", "email", "phone", "ssn", "password")
 
@@ -74,3 +77,31 @@ def get_logger() -> logging.Logger:
     logger.addHandler(stream_handler)
 
     return logger
+
+
+def get_db() -> mysql.connector.connection.MySQLConnection:
+    """
+    Establishes a connection to the MySQL database using environment variables.
+    Return:
+        mysql.connector.connection.MySQLConnection: The database connection object.
+    """
+    try:
+        username = os.getenv('PERSONAL_DATA_DB_USERNAME', 'root')
+        password = os.getenv('PERSONAL_DATA_DB_PASSWORD', '')
+        host = os.getenv('PERSONAL_DATA_DB_HOST', 'localhost')
+        database = os.getenv('PERSONAL_DATA_DB_NAME', '')
+
+        # Establish a connection
+        connection = mysql.connector.connect(
+            user=username,
+            password=password,
+            host=host,
+            databse=database
+        )
+
+        if connection.is_connected():
+            return connection
+
+    except Error as e:
+        print(f"Error connecting to MySQL database: {e}")
+        raise
