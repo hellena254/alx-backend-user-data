@@ -96,7 +96,7 @@ def get_db() -> mysql.connector.connection.MySQLConnection:
             user=username,
             password=password,
             host=host,
-            databse=database
+            database=database
         )
 
         if connection.is_connected():
