@@ -1,107 +1,75 @@
 #!/usr/bin/env python3
 """
-REGEX-ING of logs
+Module for filtering and displaying user data from the database.
 """
 
 import os
-import re
-import logging
-from typing import List
 import mysql.connector
 from mysql.connector import Error
+import logging
+from typing import List
 
-PII_FIELDS = ("name", "email", "phone", "ssn", "password")
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='[HOLBERTON] user_data INFO %(asctime)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S,%f')
 
+def get_db():
+    """
+    Establishes and returns a connection to the database.
+    
+    Returns:
+        mysql.connector.connection.MySQLConnection: The database connection.
+    """
+    try:
+        connection = mysql.connector.connect(
+            host=os.getenv('PERSONAL_DATA_DB_HOST', 'localhost'),
+            user=os.getenv('PERSONAL_DATA_DB_USERNAME', 'root'),
+            password=os.getenv('PERSONAL_DATA_DB_PASSWORD', ''),
+            database=os.getenv('PERSONAL_DATA_DB_NAME', 'my_db')
+        )
+        return connection
+    except Error as e:
+        logging.error(f"Error: {e}")
+        raise
 
 def filter_datum(fields: List[str], redaction: str, message: str, separator: str) -> str:
     """
-    Use a regex to replace occurrences of certain field values.
+    Obfuscates specified fields in a log message.
+    
     Args:
-        fields: The fields to obfuscate
-        redaction: The string to replace the field values with.
-        message: The log message
-        separator: The character that separates fields in the logs
-
-    Return:
-        The log message obfuscated
+        fields (List[str]): The fields to obfuscate.
+        redaction (str): The string to replace the field values with.
+        message (str): The log message.
+        separator (str): The character that separates fields in the log message.
+    
+    Returns:
+        str: The obfuscated log message.
     """
-    p = '|'.join(f"{field}=[^{separator}]+" for field in fields)
-    return re.sub(p, lambda m: f"{m.group().split('=')[0]}={redaction}", message)
+    pattern = '|'.join(f"{field}=[^{separator}]+" for field in fields)
+    return re.sub(pattern, lambda m: f"{m.group().split('=')[0]}={redaction}", message)
 
-
-class RedactingFormatter(logging.Formatter):
-    """ Redacting Formatter class
-        """
-
-    REDACTION = "***"
-    FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
-    SEPARATOR = ";"
-
-    def __init__(self, fields: List[str]):
-        """
-        Initialize the formatter
-        Args:
-            fields: field to redact
-        """
-        super(RedactingFormatter, self).__init__(self.FORMAT)
-        self.fields = fields
-
-    def format(self, record: logging.LogRecord) -> str:
-        """
-        Format the log record, filtering specified fields.
-
-        Args:
-            record: The log record to format.
-
-        Return:
-            str: The formatted and obfuscated log record
-        """
-        initial_mess = super().format(record)
-        return filter_datum(self.fields, self.REDACTION, initial_mess, self.SEPARATOR)
-
-
-def get_logger() -> logging.Logger:
+def main():
     """
-    Creates and returns a logger with a specific configuration.
-    Return:
-        logging.Logger object
+    Retrieves data from the users table and displays each row with specified fields obfuscated.
     """
-    logger = logging.getLogger("user_data")
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
-
-    stream_handler = logging.StreamHandler()
-    formatter = RedactingFormatter(fields=PII_FIELDS)
-    stream_handler.setFormatter(formatter)
-
-    logger.addHandler(stream_handler)
-
-    return logger
-
-
-def get_db() -> mysql.connector.connection.MySQLConnection:
-    """
-    Establishes a connection to the MySQL database using environment variables.
-    Return:
-        mysql.connector.connection.MySQLConnection: The database connection object.
-    """
+    fields_to_obfuscate = ["name", "email", "phone", "ssn", "password"]
+    
     try:
-        username = os.getenv('PERSONAL_DATA_DB_USERNAME', 'root')
-        password = os.getenv('PERSONAL_DATA_DB_PASSWORD', '')
-        host = os.getenv('PERSONAL_DATA_DB_HOST', 'localhost')
-        database = os.getenv('PERSONAL_DATA_DB_NAME', '')
-
-        # Establish a connection
-        connection = mysql.connector.connect(
-            user=username,
-            password=password,
-            host=host,
-            database=database
-        )
-
-        if connection.is_connected():
-            return connection
-
+        connection = get_db()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users;")
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            message = "; ".join(f"{key}={value}" for key, value in row.items()) + ";"
+            filtered_message = filter_datum(fields_to_obfuscate, '***', message, ';')
+            logging.info(filtered_message)
+            
     except Error as e:
-        print(f"Error connecting to MySQL database: {e}")
-        raise
+        logging.error(f"Error: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+if __name__ == "__main__":
+    main()
