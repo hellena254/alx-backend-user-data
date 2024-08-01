@@ -15,7 +15,7 @@ def filter_datum(fields: List[str], redaction: str, message: str, separator: str
     Use a regex to replace occurrences of certain field values.
     Args:
         fields: The fields to obfuscate
-        reduction: The string to replace the field values with.
+        redaction: The string to replace the field values with.
         message: The log message
         separator: The character that separates fields in the logs
 
@@ -57,20 +57,20 @@ class RedactingFormatter(logging.Formatter):
         return filter_datum(self.fields, self.REDACTION, initial_mess, self.SEPARATOR)
 
 
-    def get_logger() -> logging.Logger:
-        """
-        Creates and returns a logger with a specific configuration.
-        Return:
-            logging.Logger object
-        """
-        logger = logging.getLogger("user_data")
-        logger.setLevel(logging.INFO)
-        logger.propagate = False
+def get_logger() -> logging.Logger:
+    """
+    Creates and returns a logger with a specific configuration.
+    Return:
+        logging.Logger object
+    """
+    logger = logging.getLogger("user_data")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
 
-        stream_handler = logging.StreamHandler()
-        formatter = RedactingFormatter(fields=PII_FIELDS)
-        stream_handler.setFormatter(formatter)
+    stream_handler = logging.StreamHandler()
+    formatter = RedactingFormatter(fields=PII_FIELDS)
+    stream_handler.setFormatter(formatter)
 
-        logger.addHandler(stream_handler)
+    logger.addHandler(stream_handler)
 
-        return logger
+    return logger
