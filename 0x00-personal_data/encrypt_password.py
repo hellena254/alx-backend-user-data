@@ -9,14 +9,14 @@ import bcrypt
 def hash_password(password: str) -> bytes:
     """
     Implement a hash_password
-    one string argument name password
-    returns a salted, hashed password, which is a byte string
+    Args: one string argument name password
+    Returns a salted, hashed password, which is a byte string
     """
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password.encode(), salt)
     return hashed
 
-def is_valid(hashed_password: bytes, password: str):
+def is_valid(hashed_password: bytes, password: str) -> bool:
     """
     Implement an is_valid function
     Expects 2 arguments and returns a boolean
