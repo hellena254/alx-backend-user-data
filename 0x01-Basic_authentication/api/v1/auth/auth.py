@@ -11,16 +11,23 @@ class Auth:
     """Auth class to manage API authentication"""
 
     def require_auth(self, path: str, excluded_paths: List[str]) -> bool:
-        """ Check if the path requires authentication """
+        """Checks if a path requires authentication"""
         if path is None:
             return True
-        if not excluded_paths or len(excluded_paths) == 0:
+        if not excluded_paths or not isinstance(excluded_paths, list):
             return True
+
+        # Normalize the path to always have a trailing slash
         path = path.rstrip('/') + '/'
-        for ex_path in excluded_paths:
-            if ex_path.rstrip('/') + '/' == path:
+
+        for excl_path in excluded_paths:
+            # Normalize excluded path to have a trailing slash if it doesn't have *
+            excl_path = excl_path.rstrip('/') + '/' if not excl_path.endswith('*') else excl_path
+            if fnmatch.fnmatch(path, excl_path):
                 return False
+
         return True
+
 
     def authorization_header(self, request=None) -> str:
         """ Get the authorization header from the request """
