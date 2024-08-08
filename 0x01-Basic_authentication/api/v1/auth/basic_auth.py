@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 from api.v1.auth.auth import Auth
+from base64 import b64decode
+from typing import TypeVar
+from models.user import User
 
 
 class BasicAuth(Auth):
@@ -79,12 +82,3 @@ class BasicAuth(Auth):
         
         return self.user_object_from_credentials(user_email, user_pwd)
 
-
-    def extract_user_credentials(self, decoded_base64_authorization_header: str) -> (str, str):
-    """Extracts the user email and password from the Base64 decoded value"""
-    if decoded_base64_authorization_header is None:
-        return None, None
-    if not isinstance(decoded_base64_authorization_header, str):
-        return None, None
-    if ':' not in decoded_base64_authorization_header:
-        return None, None
