@@ -1,55 +1,63 @@
 #!/usr/bin/env python3
 """
-Route module for the API
+Module for managing API authentication
 """
+
+from flask import request
+from typing import List, TypeVar
 from os import getenv
-from api.v1.views import app_views
-from flask import Flask, jsonify, abort, request
-from flask_cors import CORS
-from api.v1.auth.auth import Auth
-from api.v1.auth.basic_auth import BasicAuth
+import fnmatch
 
-app = Flask(__name__)
-app.register_blueprint(app_views)
-CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 
-auth = None
-auth_type = getenv('AUTH_TYPE')
+class Auth:
+    """Class to manage API authentication"""
 
-if auth_type == 'basic_auth':
-    auth = BasicAuth()
-else:
-    auth = Auth()
+    def require_auth(self, path: str, excluded_paths: List[str]) -> bool:
+        """
+        Determines if a given path requires authentication
+        """
+        if path is None:
+            return True
+        if not excluded_paths or not isinstance(excluded_paths, list):
+            return True
 
-@app.errorhandler(404)
-def not_found(error) -> str:
-    """ Not found handler """
-    return jsonify({"error": "Not found"}), 404
+        # Standardize path to include a trailing slash
+        path = path.rstrip('/') + '/'
 
-@app.errorhandler(401)
-def unauthorized(error) -> str:
-    """ Unauthorized handler """
-    return jsonify({"error": "Unauthorized"}), 401
+        for exc_path in excluded_paths:
+            # Adjust excluded paths to include a trailing slash unless it ends with '*'
+            if not exc_path.endswith('*'):
+                exc_path = exc_path.rstrip('/') + '/'
+            if fnmatch.fnmatch(path, exc_path):
+                return False
 
-@app.errorhandler(403)
-def forbidden(error) -> str:
-    """ Forbidden handler """
-    return jsonify({"error": "Forbidden"}), 403
+        return True
 
-@app.before_request
-def before_request():
-    """ Filter each request before processing """
-    if auth is None:
-        return
-    excluded_paths = ['/api/v1/status/', '/api/v1/unauthorized/', '/api/v1/forbidden/']
-    if not auth.require_auth(request.path, excluded_paths):
-        return
-    if auth.authorization_header(request) is None:
-        abort(401)
-    if auth.current_user(request) is None:
-        abort(403)
+    def authorization_header(self, request=None) -> str:
+        """
+        Retrieves the Authorization header from the request
+        """
+        if request is None:
+            return None
+        return request.headers.get('Authorization')
 
-if __name__ == "__main__":
-    host = getenv("API_HOST", "0.0.0.0")
-    port = getenv("API_PORT", "5000")
-    app.run(host=host, port=port)i
+    def session_cookie(self, request=None) -> str:
+        """
+        Extracts the session cookie from the request
+        """
+        if request is None:
+            return None
+
+        # Get the session name from environment variables
+        session_name = getenv('SESSION_NAME')
+        if not session_name:
+            return None
+
+        # Return the cookie value associated with session_name
+        return request.cookies.get(session_name)
+
+    def current_user(self, request=None) -> TypeVar('User'):
+        """
+        Placeholder method to be overridden for retrieving the current user
+        """
+        return None
