@@ -3,10 +3,10 @@
 User model for SQLAlchemy
 """
 
-from sqlalchemy import Colum, Integer, String, create_engine
-fron sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.ext.declarative import declarative_base
 
-Base = dclarative_base()
+Base = declarative_base()
 
 
 class User(Base):
