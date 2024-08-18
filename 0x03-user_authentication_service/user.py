@@ -14,7 +14,7 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, nullable=False)
-    email = Column(string, nullable=False)
-    hashed_password = Column(string, nullable=False)
-    session_id = Column(string, nullable=True)
-    reset_token = Column(string, nullable=True)
+    email = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    session_id = Column(String, nullable=True)
+    reset_token = Column(String, nullable=True)
